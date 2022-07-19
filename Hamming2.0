@@ -1,0 +1,219 @@
+
+def ArqParaHamming():
+    arqInicial = input("qual o local do arquivo?")
+    binarioArq = open(r"C:\Users\Gabriel\PycharmProjects\guppe\Trabalho_hamming\Binario.txt", "w")      
+    
+    melhorTamanhoHamming, contadorPotenciasDois = 8, 4                                               
+    
+    listNome = arqInicial.split(".")                                                                    
+    des = "Destino." + listNome[1]                                                                       
+    
+    with open(arqInicial, "rb") as main: #, open(des, "wb") as file:
+        mainTexto = main.read()
+        print(main)
+        tamanhoTotal = len(mainTexto * 8)
+        while (melhorTamanhoHamming - contadorPotenciasDois) * 100_000 < tamanhoTotal:
+            melhorTamanhoHamming = (melhorTamanhoHamming * 2)
+            contadorPotenciasDois += 1
+        print (melhorTamanhoHamming)
+        
+        total = 0
+        contador = 0
+        for _ in range(tamanhoTotal):
+            contador += 1
+            if contador == 26:
+                total += 32
+                contador = 0
+
+
+
+        
+        y = 0
+        listaBinario = []
+        for byte in mainTexto:
+            binario = bin(byte)[2:]
+
+            if len(binario) < 8:
+                    qntZeros = 8 - len(binario)                                                             
+                    binarioNovo = (f'{"0" * qntZeros}{binario}')
+            else:
+                binarioNovo = binario
+            for i in binarioNovo:
+                listaBinario.append(i)
+
+
+
+                
+            if len(listaBinario) >= ((melhorTamanhoHamming - contadorPotenciasDois)):
+                mensagem = listaBinario[0:(melhorTamanhoHamming - contadorPotenciasDois)]
+                mensagemLista,tamanhoHamming = dataParaLista(mensagem)
+                adicionarHamming = f'{binarioParaHamming(mensagemLista,tamanhoHamming)}'
+                binarioArq.write(adicionarHamming)
+                del(listaBinario[0:(melhorTamanhoHamming - contadorPotenciasDois)])
+        if len(listaBinario) != 0:
+            print(listaBinario)
+            while len(listaBinario) < (melhorTamanhoHamming - contadorPotenciasDois):
+                listaBinario.insert(0,"0")
+            print(listaBinario)
+            mensagem = listaBinario[0:(melhorTamanhoHamming - contadorPotenciasDois)]
+            mensagemLista,tamanhoHamming = dataParaLista(mensagem)
+            adicionarHamming = f'{binarioParaHamming(mensagemLista,tamanhoHamming)}'
+            binarioArq.write(adicionarHamming)
+    binarioArq.close()
+
+    print("Terminei :D")
+
+
+def arquivoHammingParaBinario(localArquivo):
+    binarioArq = open(localArquivo, "r")
+    listaBits,semHammingList1 = [], []
+    extensao = input("Qual era a extensão do arquivo?")
+    des = "Destino." + extensao
+    y = binarioArq.read()
+    z = (len(y))
+    errosLista = []
+    tamanhoHammingVolta = 8
+    
+    hammina = 0
+    
+    while tamanhoHammingVolta * 100_000 < z:
+            tamanhoHammingVolta = (tamanhoHammingVolta * 2)
+    with open(des, "wb") as file:
+        for bit in y:
+            listaBits.append(bit)
+            if len(listaBits) == tamanhoHammingVolta:
+                hammina += 1
+                semHammingStr,erros = HammingParaBinario(listaBits)
+                for i in semHammingStr:
+                    semHammingList1.append(i)
+                while len(semHammingList1) >= 8:
+                    semHammingint = int("".join([i for i in semHammingList1[0:8]]),2)
+                    file.write(semHammingint.to_bytes(1,"little"))
+                    del(semHammingList1[0:8])
+                if erros:
+                    errosLista.append(1 + erros[0] + ((hammina - 1) * tamanhoHammingVolta))
+                del(listaBits[0:tamanhoHammingVolta])
+    print(errosLista)
+
+
+
+
+
+
+
+
+
+
+
+
+def dataParaLista(mensagem):
+    #print(mensagem)
+    potenciaDeDois = 8                                                                  
+    marcadorDois = 2                                                            
+    while potenciaDeDois < len(mensagem):
+        potenciaDeDois = potenciaDeDois * 2
+    mensagemLista = [i for i in mensagem]
+    bitsem8 = ["*"] * potenciaDeDois
+    posicao8 = 0
+    for posicao, _ in enumerate(bitsem8):
+        if posicao == marcadorDois:
+            marcadorDois = marcadorDois * 2           
+            continue
+        if posicao > 2:
+            bitsem8[posicao] = int(mensagemLista[posicao8])
+            posicao8 += 1
+
+    return(bitsem8,marcadorDois)
+
+
+def binarioParaHamming(bitsemHamming,tamanhoHamming):
+    grupos = []
+    bitsDeParidade,potenciasDois = 3,8
+        
+    for contadorNeutro in range(1, tamanhoHamming + 1):  
+        if contadorNeutro > potenciasDois:
+            potenciasDois = potenciasDois * 2
+            bitsDeParidade += 1
+        
+    for _ in range(bitsDeParidade):
+        grupos.append([]) 
+
+    for posicaoHamming, _ in enumerate(bitsemHamming):
+        contadorGrupo = -1
+        posicaoHammingBin = [int(i) for i in bin(posicaoHamming) if i != "b"]
+        while len(posicaoHammingBin) < bitsDeParidade:
+            posicaoHammingBin.insert(0, 0)
+        if len(posicaoHammingBin) > bitsDeParidade:
+            posicaoHammingBin.pop(0)
+        for posicaoBinario, bitBinario in enumerate(posicaoHammingBin):
+            if bitBinario:
+                grupos[contadorGrupo].append(posicaoHamming)
+            contadorGrupo -= 1
+
+    for subGrupo in grupos:
+        pariedade = 0
+        for bit in subGrupo:
+            pariedade = pariedade ^ int(bitsemHamming[bit]) if bitsemHamming[bit] != "*" else pariedade
+        bitsemHamming[subGrupo[0]] = pariedade
+
+    pariedade = 0
+    for posicaoGeral in bitsemHamming:
+        if posicaoGeral != "*":
+            pariedade = pariedade ^ posicaoGeral
+    bitsemHamming[0] = pariedade
+
+    return("".join([str(i) for i in bitsemHamming]))
+
+def HammingParaBinario(bitsComHamming):
+    listaBits = [int(i) for i in bitsComHamming]
+    erros = []
+    pariedade = 0
+    potenciaDois = 4
+    listaBitsPariedade = []
+
+    for posicao,bite in enumerate(listaBits):
+        pariedade = pariedade ^ posicao if bite else pariedade
+    if pariedade:
+        erros.append(pariedade)
+        listaBits[pariedade] = int(not listaBits[pariedade])
+    
+    for posicao, _ in enumerate(listaBits):
+        if posicao > 2:
+            if posicao == potenciaDois:
+                listaBitsPariedade.insert(0,posicao)
+                potenciaDois = potenciaDois * 2
+                continue
+        elif posicao <= 2:
+            listaBitsPariedade.insert(0,posicao)
+
+    for posicaoPariedade in listaBitsPariedade:
+        del(listaBits[posicaoPariedade])
+    
+    bitsComHamming = "".join([str(i) for i in listaBits])
+    return(bitsComHamming, erros)
+
+
+def main():
+    print("Escolha uma opção: \n [1] Binario para hamming \t \t [2] Hamming para binario \t \t [3] Arquvio para hamming \t \t [4] Arquivo com Hamming para arquivo original")
+    opcao = input("")
+    
+    if opcao == "1":
+        mensagem = input("qual os bits de data?")
+        mensagemLista,tamanhoHamming = dataParaLista(mensagem)
+        print (binarioParaHamming(mensagemLista,tamanhoHamming))
+    elif opcao == "2":
+        mensagem = input("qual os bits com Hamming? ")
+        binario, erros = HammingParaBinario(mensagem)
+        if erros:
+            print(f'\nTeve um erro na posição {erros[0]} \nA mensagem corrigida ficou {binario}')
+        else:
+            print(f'Nao teve erros, sua mensagem é {binario}')
+    elif opcao == "3":
+        ArqParaHamming()
+    elif opcao == "4":
+        localArquivo = input("qual o local do arquivo com o hamming? ")
+        arquivoHammingParaBinario(localArquivo)
+
+if __name__ == '__main__':
+    main()
+
