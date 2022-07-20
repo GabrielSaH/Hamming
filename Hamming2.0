@@ -1,4 +1,3 @@
-
 def ArqParaHamming():
     arqInicial = input("qual o local do arquivo?")
     binarioArq = open(r"C:\Users\Gabriel\PycharmProjects\guppe\Trabalho_hamming\Binario.txt", "w")      
@@ -10,29 +9,17 @@ def ArqParaHamming():
     
     with open(arqInicial, "rb") as main: #, open(des, "wb") as file:
         mainTexto = main.read()
-        print(main)
         tamanhoTotal = len(mainTexto * 8)
         while (melhorTamanhoHamming - contadorPotenciasDois) * 100_000 < tamanhoTotal:
             melhorTamanhoHamming = (melhorTamanhoHamming * 2)
             contadorPotenciasDois += 1
-        print (melhorTamanhoHamming)
-        
-        total = 0
-        contador = 0
-        for _ in range(tamanhoTotal):
-            contador += 1
-            if contador == 26:
-                total += 32
-                contador = 0
 
-
-
-        
         y = 0
         listaBinario = []
+        listaSublistas = []
         for byte in mainTexto:
             binario = bin(byte)[2:]
-
+            
             if len(binario) < 8:
                     qntZeros = 8 - len(binario)                                                             
                     binarioNovo = (f'{"0" * qntZeros}{binario}')
@@ -40,28 +27,36 @@ def ArqParaHamming():
                 binarioNovo = binario
             for i in binarioNovo:
                 listaBinario.append(i)
-
-
-
                 
-            if len(listaBinario) >= ((melhorTamanhoHamming - contadorPotenciasDois)):
+
+            while len(listaBinario) >= ((melhorTamanhoHamming - contadorPotenciasDois)):
                 mensagem = listaBinario[0:(melhorTamanhoHamming - contadorPotenciasDois)]
                 mensagemLista,tamanhoHamming = dataParaLista(mensagem)
-                adicionarHamming = f'{binarioParaHamming(mensagemLista,tamanhoHamming)}'
-                binarioArq.write(adicionarHamming)
+                adicionarHamming = list(binarioParaHamming(mensagemLista,tamanhoHamming))
+                listaSublistas.append(adicionarHamming)
                 del(listaBinario[0:(melhorTamanhoHamming - contadorPotenciasDois)])
+        
+            if len(listaSublistas) == 300:
+                escreveNoHamming = embaralhar(listaSublistas)
+                binarioArq.write(escreveNoHamming)
+                listaSublistas = []
+
         if len(listaBinario) != 0:
-            print(listaBinario)
             while len(listaBinario) < (melhorTamanhoHamming - contadorPotenciasDois):
                 listaBinario.insert(0,"0")
-            print(listaBinario)
             mensagem = listaBinario[0:(melhorTamanhoHamming - contadorPotenciasDois)]
             mensagemLista,tamanhoHamming = dataParaLista(mensagem)
-            adicionarHamming = f'{binarioParaHamming(mensagemLista,tamanhoHamming)}'
-            binarioArq.write(adicionarHamming)
+            adicionarHamming = list(binarioParaHamming(mensagemLista,tamanhoHamming))
+            listaSublistas.append(adicionarHamming)
+        
+        if len(listaSublistas):
+            escreveNoHamming = embaralhar(listaSublistas)
+            binarioArq.write(escreveNoHamming)
+        
     binarioArq.close()
 
-    print("Terminei :D")
+    print("\n"*3, f"Terminei :D \rFoi feito um Hamming com {melhorTamanhoHamming} bits totais sendo {melhorTamanhoHamming - contadorPotenciasDois} bits de data e {contadorPotenciasDois}\
+ de pariedade")
 
 
 def arquivoHammingParaBinario(localArquivo):
@@ -71,43 +66,82 @@ def arquivoHammingParaBinario(localArquivo):
     des = "Destino." + extensao
     y = binarioArq.read()
     z = (len(y))
-    errosLista = []
+    errosLista,listaHammings = 0,[]
     tamanhoHammingVolta = 8
-    
     hammina = 0
     
     while tamanhoHammingVolta * 100_000 < z:
             tamanhoHammingVolta = (tamanhoHammingVolta * 2)
+    
+    if z % tamanhoHammingVolta != 0:
+        print("Foram adicionados ou removidos bits, a recuperação do arquivo não é possivel")
+        return()
+
     with open(des, "wb") as file:
         for bit in y:
-            listaBits.append(bit)
-            if len(listaBits) == tamanhoHammingVolta:
-                hammina += 1
-                semHammingStr,erros = HammingParaBinario(listaBits)
-                for i in semHammingStr:
-                    semHammingList1.append(i)
-                while len(semHammingList1) >= 8:
-                    semHammingint = int("".join([i for i in semHammingList1[0:8]]),2)
-                    file.write(semHammingint.to_bytes(1,"little"))
-                    del(semHammingList1[0:8])
-                if erros:
-                    errosLista.append(1 + erros[0] + ((hammina - 1) * tamanhoHammingVolta))
-                del(listaBits[0:tamanhoHammingVolta])
-    print(errosLista)
+            listaHammings.append(bit)
+            if len(listaHammings) == (300 * tamanhoHammingVolta):
+                hammingOrdem = desembaralhar(listaHammings,tamanhoHammingVolta)
+                listaHammings = []
+                for chr in hammingOrdem:
+                    listaBits.append(chr)
+                    if len(listaBits) == tamanhoHammingVolta:
+                        hammina += 1
+                        semHammingStr,erros = HammingParaBinario(listaBits)
+                        for i in semHammingStr:
+                            semHammingList1.append(i)
+                        while len(semHammingList1) >= 8:
+                            semHammingint = int("".join([i for i in semHammingList1[0:8]]),2)
+                            file.write(semHammingint.to_bytes(1,"little"))
+                            del(semHammingList1[0:8])
+                        if erros:
+                            errosLista += 1
+                        del(listaBits[0:tamanhoHammingVolta])
+        if len(listaHammings) != 0:
+            hammingOrdem = desembaralhar(listaHammings,tamanhoHammingVolta)
+            listaHammings = []
+            for chr in hammingOrdem:
+                listaBits.append(chr)
+                if len(listaBits) == tamanhoHammingVolta:
+                    hammina += 1
+                    semHammingStr,erros = HammingParaBinario(listaBits)
+                    for i in semHammingStr:
+                        semHammingList1.append(i)
+                    while len(semHammingList1) >= 8:
+                        semHammingint = int("".join([i for i in semHammingList1[0:8]]),2)
+                        file.write(semHammingint.to_bytes(1,"little"))
+                        del(semHammingList1[0:8])
+                    if erros:
+                        errosLista += 1
+                    del(listaBits[0:tamanhoHammingVolta])
+    if not errosLista:
+        print("\n"*3,"Não foram encontrados erros, o arquivo foi convertido ao seu formato original :D")
+    elif errosLista:
+        print("\n"*3,f"Foram encontrados e corrigidos {errosLista} erros. O arquivo foi arrumado e exportado ao seu formato original :D")
 
 
+def embaralhar(listaHamming):
+    tamanhoHamming = len(listaHamming[0])
+    listaRetorno = ""
+    for posicao in range(tamanhoHamming):
+        for hamming, _ in enumerate(listaHamming):
+            listaRetorno = listaRetorno + str(listaHamming[hamming][posicao])
+    return(listaRetorno)
 
 
-
-
-
+def desembaralhar(listaHamming,tamanhoHamming):
+    numeroHammings = len(listaHamming) // tamanhoHamming
+    strRetorno = ""
+    for hamming in range(numeroHammings):
+        for posicao in range(tamanhoHamming):
+            strRetorno = strRetorno + listaHamming[hamming + (posicao * numeroHammings)]
+    return(strRetorno)
 
 
 
 
 
 def dataParaLista(mensagem):
-    #print(mensagem)
     potenciaDeDois = 8                                                                  
     marcadorDois = 2                                                            
     while potenciaDeDois < len(mensagem):
